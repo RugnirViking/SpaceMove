@@ -21,9 +21,9 @@ class Logger():
         if exists("log.txt"):
             os.remove("log.txt")
         self.logfile = open("log.txt", "a")
-        self.log(f"-=-=-=-=-=-=-=- LOG START -=-=-=-=-=-=-=-")
-        self.log(f"{date.today().strftime('%d/%m/%Y')}")
+        self.logfile.write(f"-=-=-=-=-=-=-=- LOG START -=-=-=-=-=-=-=-\n")
+        self.logfile.write(f"{date.today().strftime('%d/%m/%Y')}\n")
 
 
     def log(self,logtext,level=levels.INFO):
-        self.logfile.write(f"{datetime.now().strftime('%H:%M:%S')} {level_to_text(level)}: {logtext}")
+        self.logfile.write(f"{datetime.now().strftime('%H:%M:%S')} {level_to_text(level)}: {logtext}\n")

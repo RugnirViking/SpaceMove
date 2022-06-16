@@ -2,6 +2,8 @@ import pygame, sys, os
 from pygame.locals import *
 
 from engine import Engine
+from input_handlers import BaseEventHandler
+from mainmenuhandler import MainMenuHandler
 
 os.environ['SDL_VIDEO_CENTERED'] = '1'
 
@@ -20,6 +22,9 @@ def setup():
     mainloop(windowSurface,engine)
 
 def mainloop(surface,engine):
+    # start the game on the main menu
+    handler = MainMenuHandler(engine,surface)
+
     # Run the game loop
     while True:
         events = pygame.event.get()
@@ -27,18 +32,16 @@ def mainloop(surface,engine):
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
+            handler.handle_events(event)
 
-        engine.handle_events(events)
-
-
-        do_draw(surface,engine)
+        do_draw(surface,handler)
 
 
 #Draw the window onto the screen
-def do_draw(surf,engine):
+def do_draw(surf,handler:BaseEventHandler):
     surf.fill((0,0,0))
 
-    engine.draw(surf)
+    handler.on_render(surf)
 
     pygame.display.flip()
 
