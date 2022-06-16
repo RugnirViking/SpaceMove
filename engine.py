@@ -22,6 +22,7 @@ class Engine:
     __metaclass__ = Singleton
     textRect: pygame.rect
     smallfont: Union[Font, FontType]
+    titlefont: Union[Font, FontType]
     titletext: pygame.Surface
 
     logger: Logger
@@ -30,6 +31,7 @@ class Engine:
         self.logger = Logger()
         #Set up fonts
         self.smallfont = pygame.font.SysFont(None, 48)
+        self.titlefont = pygame.font.Font("resources/fonts/Bungee-Regular.ttf", 72)
 
         self.logger.log("Engine load complete")
 
