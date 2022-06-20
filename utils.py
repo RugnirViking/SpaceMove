@@ -1,4 +1,6 @@
+import pygame
 
+ANGULAR_VELOCITY = 350
 
 def lerp(a: float, b: float, t: float) -> float:
     """Linear interpolate on the scale given by a to b, using t as the point on that scale.
@@ -10,6 +12,11 @@ def lerp(a: float, b: float, t: float) -> float:
     return (1 - t) * a + t * b
 
 
+def rot_center(image, rect, angle):
+    """rotate an image while keeping its center"""
+    rot_image = pygame.transform.rotate(image, angle)
+    rot_rect = rot_image.get_rect(center=rect.center)
+    return rot_image, rot_rect
 
 class Singleton(type):
     _instances = {}

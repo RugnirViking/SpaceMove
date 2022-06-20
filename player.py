@@ -1,56 +1,98 @@
 import math
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import pygame
 from pygame import Rect
 
 from colors import WHITE
+from entity import Entity
+from object import Object
+from utils import rot_center, ANGULAR_VELOCITY
 
 if TYPE_CHECKING:
     from engine import Engine
 
-ANGULAR_VELOCITY = 350
 
-def rot_center(image, rect, angle):
-    """rotate an image while keeping its center"""
-    rot_image = pygame.transform.rotate(image, angle)
-    rot_rect = rot_image.get_rect(center=rect.center)
-    return rot_image,rot_rect
+
+
 
 class Player():
+    target: Optional[Entity]
     sprite: pygame.image
     angle: float
     angle_target: float
 
-    def __init__(self,img_path,engine):
+    def __init__(self, img_path, engine):
         self.angle = 0.0
         self.sprite = pygame.image.load(img_path).convert_alpha()
         self.angle_target = 0.0
         self.engine = engine
+        self.angular_vel = 0
         width, height = self.sprite.get_width(), self.sprite.get_height()  # get size
-        self.sprite = pygame.transform.scale(self.sprite, (int(width/4), int(height/4)))
+        self.sprite = pygame.transform.scale(self.sprite, (int(width / 6), int(height / 6)))
+        self.target = None
 
-    def draw(self,surf):
+    def draw(self, surf):
         self.angle = self.angle % 360
 
         angle_error = (self.angle - self.angle_target) % 360
 
-        if 0<angle_error<180:
-            self.angle-=ANGULAR_VELOCITY*self.engine.deltaTime
-            if angle_error<ANGULAR_VELOCITY*self.engine.deltaTime:
+        if 0 < angle_error < 180:
+            self.angle -= ANGULAR_VELOCITY * self.engine.deltaTime
+            if angle_error < ANGULAR_VELOCITY * self.engine.deltaTime:
                 self.angle = self.angle_target
-        elif angle_error>180:
-            self.angle+=ANGULAR_VELOCITY*self.engine.deltaTime
-            if angle_error<ANGULAR_VELOCITY*self.engine.deltaTime:
+        elif angle_error > 180:
+            self.angle += ANGULAR_VELOCITY * self.engine.deltaTime
+            if angle_error < ANGULAR_VELOCITY * self.engine.deltaTime:
                 self.angle = self.angle_target
-        if abs(self.angle-self.angle_target)<5:
+        if abs(self.angle - self.angle_target) < 5:
             self.angle = self.angle_target
 
-        rect = Rect(surf.get_rect().centerx-self.sprite.get_width()/2,surf.get_rect().centery-self.sprite.get_height()/2,self.sprite.get_width(),self.sprite.get_height())
-        rotated_image, rect = rot_center(self.sprite, rect, self.angle)
+        # do player control
 
-        surf.blit(rotated_image,rect)
+        err = math.dist((self.engine.px,self.engine.py), (-self.engine.targetpx,-self.engine.targetpy))
+        snapped = False
+        if err < (400 * self.engine.deltaTime):
+            self.engine.px = -self.engine.targetpx
+            self.engine.py = -self.engine.targetpy
+            snapped = True
+        else:
+            self.engine.px += 400 * math.sin(self.angle * (math.pi / 180)) * self.engine.deltaTime
+            self.engine.py += 400 * math.cos(self.angle * (math.pi / 180)) * self.engine.deltaTime
 
+        if err>(2000 * self.engine.deltaTime) and not snapped:
+            o = self.engine.targetpx+self.engine.px
+            a = self.engine.targetpy+self.engine.py
+            angle = math.atan2(o,a)
+            self.set_new_angle(angle*(180/math.pi)-180)
+
+
+        rect = Rect(surf.get_rect().centerx - self.sprite.get_width() / 2,
+                    surf.get_rect().centery - self.sprite.get_height() / 2, self.sprite.get_width(),
+                    self.sprite.get_height())
+
+        rotangle = 0
+        if self.target:
+            rotangle = self.targetAngle()
+        else:
+            rotangle = self.angle
+        rotated_image, rect = rot_center(self.sprite, rect, rotangle)
+
+
+
+
+
+        surf.blit(rotated_image, rect)
 
     def set_new_angle(self, angle):
         self.angle_target = angle % 360
+
+    def targetAngle(self) -> float:
+
+        playerpos = (-self.engine.px + self.engine.surface.get_width() / 2,
+                           -self.engine.py + self.engine.surface.get_height() / 2)
+
+        o = self.target.x- playerpos[0]
+        a =  self.target.y - playerpos[1]
+        angle = math.atan2(o, a)
+        return (angle * (180 / math.pi) - 180) % 360

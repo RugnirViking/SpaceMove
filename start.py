@@ -1,6 +1,7 @@
 import pygame, sys, os
 from pygame.locals import *
 
+from PauseMenuHandler import PauseMenuHandler
 from engine import Engine
 from input_handlers import BaseEventHandler
 from mainmenuhandler import MainMenuHandler
@@ -44,7 +45,8 @@ def mainloop(surface,engine):
 
 #Draw the window onto the screen
 def do_draw(surf,handler:BaseEventHandler):
-    pygame.draw.rect(surf,(0,0,0),pygame.Rect(0,50,surf.get_width(),surf.get_height()-50))
+    if not isinstance(handler,PauseMenuHandler):
+        pygame.draw.rect(surf,(0,0,0),pygame.Rect(0,50,surf.get_width(),surf.get_height()-50))
     handler.on_render(surf)
 
     pygame.display.flip()

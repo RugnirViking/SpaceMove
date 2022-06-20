@@ -8,7 +8,7 @@ class Marker(Object):
     sprite: pygame.SurfaceType
 
     def __init__(self, image, x, y, time):
-        super().__init__(image, x, y)
+        super().__init__(image, x, y,0.25)
 
         self.start = pygame.time.get_ticks()
         self.end = time
