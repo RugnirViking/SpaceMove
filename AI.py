@@ -31,8 +31,12 @@ class EnemyAI(AI):
         if isinstance(self.target, Player):
             dist = self.dist_to_player()
         if isinstance(self.target, Player) and dist > 1000:
+
             self.targetpos = (self.entity.x, self.entity.y)
-            self.target = None
+            self.entity.ai = SquarePatrolAI(self.engine)
+            self.entity.ai.entity = self.entity
+            self.entity.ai.retarget(True)
+
         if not isinstance(self.target, Player):
             if self.dist_to_player() < 450:
                 self.target = self.engine.player
@@ -43,20 +47,20 @@ class EnemyAI(AI):
                 #               -self.engine.py + self.engine.surface.get_height() / 2)
 
                 # target a position 100 units in front of the player
-                playerpos = (-self.engine.px + self.engine.surface.get_width() / 2,
-                             -self.engine.py + self.engine.surface.get_height() / 2)
+                playerpos = (-self.engine.player.x + self.engine.surface.get_width() / 2,
+                             -self.engine.player.y + self.engine.surface.get_height() / 2)
                 o = playerpos[0] - self.entity.x
                 a = playerpos[1] - self.entity.y
                 angle = math.atan2(o, a)
 
                 self.targetpos = (
-                    -self.engine.px + self.engine.surface.get_width() / 2 + 300 * math.cos(-angle-math.pi/2),
-                    -self.engine.py + self.engine.surface.get_height() / 2 + 300 * math.sin(-angle-math.pi/2)
+                    -self.engine.player.x + self.engine.surface.get_width() / 2 + 300 * math.cos(-angle-math.pi/2),
+                    -self.engine.player.y + self.engine.surface.get_height() / 2 + 300 * math.sin(-angle-math.pi/2)
                 )
 
         if isinstance(self.target, Player):
-            playerpos = (-self.engine.px + self.engine.surface.get_width() / 2,
-                          -self.engine.py + self.engine.surface.get_height() / 2)
+            playerpos = (-self.engine.player.x + self.engine.surface.get_width() / 2,
+                          -self.engine.player.y + self.engine.surface.get_height() / 2)
             o = playerpos[0] - self.entity.x
             a = playerpos[1] - self.entity.y
             angle = math.atan2(o, a)

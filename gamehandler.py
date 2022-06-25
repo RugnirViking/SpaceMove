@@ -31,6 +31,8 @@ class GameHandler(EventHandler):
                 return DockMenuHandler(self.engine,self)
         if key == pygame.K_m:
             return MapHandler(self.engine,self)
+        if key == pygame.K_r:
+            self.engine.player.reset()
 
     def ev_mousemove(self, pos, event: pygame.event):
         pass

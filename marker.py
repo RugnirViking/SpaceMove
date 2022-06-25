@@ -30,10 +30,10 @@ class Marker(Object):
         rect.centery = self.y+py
 
         if rect.colliderect(surf.get_rect()) and alpha>0:
-            newimage = self.sprite.copy()
-            newimage.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
-
-            surf.blit(newimage,rect,)
+            #newimage = self.sprite.copy()
+            #newimage.fill((255, 255, 255, alpha), None, pygame.BLEND_RGBA_MULT)
+            self.sprite.set_alpha(alpha)
+            surf.blit(self.sprite,rect)
             return 1
         else:
             return 0

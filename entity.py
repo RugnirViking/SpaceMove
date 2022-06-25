@@ -73,24 +73,24 @@ class Entity(Object):
                 self.angle = self.angle_target
         self.ai.retarget(True)
         ang = self.angle - self.angle_target % 360
-        if abs(ang) < 5:
+        if abs(ang) < ANGULAR_VELOCITY * self.engine.deltaTime:
             self.angle = self.angle_target
 
-            snapped  =False
-            err = math.dist((self.x, self.y), (self.ai.targetpos[0], self.ai.targetpos[1]))
-            if err < (200 * self.engine.deltaTime):
-                self.x = self.ai.targetpos[0]
-                self.y = self.ai.targetpos[1]
-                snapped = True
-            else:
-                self.x -= self.speed * math.sin(self.angle * (math.pi / 180)) * self.engine.deltaTime
-                self.y -= self.speed * math.cos(self.angle * (math.pi / 180)) * self.engine.deltaTime
+        snapped  =False
+        err = math.dist((self.x, self.y), (self.ai.targetpos[0], self.ai.targetpos[1]))
+        if err < (200 * self.engine.deltaTime):
+            self.x = self.ai.targetpos[0]
+            self.y = self.ai.targetpos[1]
+            snapped = True
+        else:
+            self.x -= self.speed * math.sin(self.angle * (math.pi / 180)) * self.engine.deltaTime
+            self.y -= self.speed * math.cos(self.angle * (math.pi / 180)) * self.engine.deltaTime
 
-            if err > (2000 * self.engine.deltaTime) and not snapped:
-                o = self.ai.targetpos[0] - self.x
-                a = self.ai.targetpos[1] - self.y
-                angle = math.atan2(o, a)
-                self.set_new_angle(angle * (180 / math.pi) - 180)
+        if err > (2000 * self.engine.deltaTime) and not snapped:
+            o = self.ai.targetpos[0] - self.x
+            a = self.ai.targetpos[1] - self.y
+            angle = math.atan2(o, a)
+            self.angle_target = (angle * (180 / math.pi) - 180) % 360
 
 
         for entity in self.engine.objects:
@@ -105,10 +105,6 @@ class Entity(Object):
                     # move away from entity
                     self.x -= 200 * (100-dist)/100 * math.sin(orthangle) * self.engine.deltaTime
                     self.y -= 200 * (100-dist)/100 * math.cos(orthangle) * self.engine.deltaTime
-
-
-    def set_new_angle(self, angle):
-        self.angle_target = angle % 360
 
     def get_rect(self) -> pygame.rect.RectType:
         return self.lastrect

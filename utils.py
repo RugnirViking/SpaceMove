@@ -9,7 +9,31 @@ def lerp(a: float, b: float, t: float) -> float:
         4.2 == lerp(1, 5, 0.8)
     """
     return (1 - t) * a + t * b
+class EasingBase:
+    limit = (0, 1)
 
+    def __init__(self, start=0, end=1, duration=1):
+        self.start = start
+        self.end = end
+        self.duration = duration
+
+    @classmethod
+    def func(cls, t):
+        raise NotImplementedError
+
+    def ease(self, alpha):
+        t = self.limit[0] * (1 - alpha) + self.limit[1] * alpha
+        t /= self.duration
+        a = self.func(t)
+        return self.end * a + self.start * (1 - a)
+
+    def __call__(self, alpha):
+        return self.ease(alpha)
+class QuadEaseInOut(EasingBase):
+    def func(self, t):
+        if t < 0.5:
+            return 2 * t * t
+        return (-2 * t * t) + (4 * t) - 1
 
 def rot_center(image, rect, angle):
     """rotate an image while keeping its center"""
