@@ -34,8 +34,9 @@ class EventHandler(BaseEventHandler):
     def handle_events(self, event: pygame.event) -> BaseEventHandler:
         """Handle an event and return the next active event handler."""
         state = self.dispatch(event)
-        if isinstance(state, BaseEventHandler):
+        if isinstance(state, BaseEventHandler) and state is not self:
             return state
+        a = isinstance(state, BaseEventHandler)
         return self
 
     def dispatch(self, event: pygame.event) -> Optional[BaseEventHandler]:

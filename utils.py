@@ -1,5 +1,4 @@
 import pygame
-
 ANGULAR_VELOCITY = 350
 
 def lerp(a: float, b: float, t: float) -> float:
@@ -14,7 +13,7 @@ def lerp(a: float, b: float, t: float) -> float:
 
 def rot_center(image, rect, angle):
     """rotate an image while keeping its center"""
-    rot_image = pygame.transform.rotate(image, angle)
+    rot_image = pygame.transform.rotozoom(image, angle,1)
     rot_rect = rot_image.get_rect(center=rect.center)
     return rot_image, rot_rect
 

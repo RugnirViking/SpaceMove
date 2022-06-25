@@ -4,10 +4,11 @@ import pygame
 class Object():
     sprite: pygame.SurfaceType
 
-    def __init__(self, image, x, y,fac):
+    def __init__(self, image, x, y,fac,name):
         self.x=x
         self.y=y
         self.sprite = pygame.image.load(image).convert_alpha()
+        self.name=name
         width, height = self.sprite.get_width(), self.sprite.get_height()  # get size
         self.sprite = pygame.transform.scale(self.sprite, (int(width*fac), int(height*fac)))
         self.dead = False

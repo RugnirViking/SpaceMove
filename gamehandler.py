@@ -6,9 +6,10 @@ import colors
 from PauseMenuHandler import PauseMenuHandler
 from button import Button
 from colors import WHITE
+from dockmenuhandler import DockMenuHandler
 from engine import Engine
 from input_handlers import EventHandler
-
+from maphandler import MapHandler
 
 
 class GameHandler(EventHandler):
@@ -25,6 +26,11 @@ class GameHandler(EventHandler):
     def ev_keydown(self, key, event: pygame.event):
         if key == pygame.K_ESCAPE:
             return PauseMenuHandler(self.engine,self)
+        if key == pygame.K_SPACE:
+            if self.engine.player.distance_to(self.engine.station) < 250:
+                return DockMenuHandler(self.engine,self)
+        if key == pygame.K_m:
+            return MapHandler(self.engine,self)
 
     def ev_mousemove(self, pos, event: pygame.event):
         pass

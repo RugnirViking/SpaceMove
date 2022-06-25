@@ -13,13 +13,13 @@ VERSIONMINOR = 1
 
 def setup():
     # Set up pygame
-    pygame.mixer.pre_init(44100, 16, 2, 4096)
+    pygame.mixer.pre_init(44100, -16, 2, 4096)
     pygame.init()
     d_info = pygame.display.Info()
     screen_width, screen_height = d_info.current_w, d_info.current_h
     # Set up the window
     flags = pygame.NOFRAME | DOUBLEBUF
-    windowSurface = pygame.display.set_mode((screen_width, screen_height), flags)
+    windowSurface = pygame.display.set_mode((screen_width, screen_height), flags,display=0)
     pygame.event.set_allowed([QUIT, KEYDOWN, KEYUP,MOUSEBUTTONDOWN,MOUSEBUTTONUP,MOUSEMOTION])
     pygame.display.set_caption(f'Asteroid Mining Ltd. V{VERSIONMAJOR}.{VERSIONMINOR}')
     engine:Engine = Engine(windowSurface)
@@ -41,6 +41,7 @@ def mainloop(surface,engine):
                 handler = new
 
         do_draw(surface,handler)
+
 
 
 #Draw the window onto the screen

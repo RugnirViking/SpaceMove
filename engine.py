@@ -4,10 +4,12 @@ import random
 
 from pygame import SurfaceType
 
+import colors
+from AI import EnemyAI, SquarePatrolAI
 from background import Background, newstar
 from entity import Entity
 from input_handlers import BaseEventHandler
-from logging import Logger
+from gamelogging import Logger
 from typing import Optional, Any, Union, List
 
 import pygame
@@ -17,8 +19,11 @@ from pygame.ftfont import Font
 from colors import WHITE, DARKGREY, LIGHTGREY, YELLOW
 from marker import Marker
 from object import Object
+from optionsmenu import OptionsMenu
 from player import Player
 from utils import Singleton, rot_center
+
+
 
 
 class Engine:
@@ -26,6 +31,7 @@ class Engine:
     __metaclass__ = Singleton
 
 
+    mastervolume: float
     textRect: pygame.rect
     objects: List[Object]
     bg_tiles: List[Background]
@@ -36,6 +42,31 @@ class Engine:
     titlefont: Union[Font, FontType]
     titletext: pygame.Surface
 
+    @property
+    def mastervolume(self):
+        return self._mastervolume
+
+    @mastervolume.setter
+    def mastervolume(self, val):
+        self._mastervolume = val
+        pygame.mixer.music.set_volume(self.mastervolume * self.musicvolume)
+
+    @property
+    def musicvolume(self):
+        return self._musicvolume
+
+    @musicvolume.setter
+    def musicvolume(self, val):
+        self._musicvolume = val
+        pygame.mixer.music.set_volume(self.mastervolume * self.musicvolume)
+
+    @property
+    def sound_effect_volume(self):
+        return self._sound_effect_volume
+
+    @sound_effect_volume.setter
+    def sound_effect_volume(self, val):
+        self._sound_effect_volume = val
 
     logger: Logger
 
@@ -64,6 +95,12 @@ class Engine:
         self.star_field_medium = []
         self.star_field_fast = []
 
+        self._mastervolume = 0.5
+        self._musicvolume = 1
+        self._sound_effect_volume = 1
+
+
+
         for slow_stars in range(50):  # birth those plasma balls, baby
             star_loc_x = random.randrange(0, self.surface.get_width())
             star_loc_y = random.randrange(0, self.surface.get_height())
@@ -81,8 +118,9 @@ class Engine:
 
         self.bg_tiles.append(Background("resources/img/sun.png",100,100,1))
         self.bg_tiles.append(Background("resources/img/planet1.png",1000,100,0.8,0.5))
-        self.objects.append(Object("resources/img/spacestation.png",1000,1000,1))
-        self.objects.append(Entity("resources/img/fleacaptain.png",1800,1000,0.5,self))
+        self.station = Object("resources/img/spacestation.png",1000,1000,1,"Station")
+        self.objects.append(self.station)
+        self.objects.append(Entity("resources/img/flea.png",1800,1000,0.5,"Flea-class Fighter",self,SquarePatrolAI(self)))
 
         pygame.mixer.init()
         pygame.mixer.music.load('resources/sound/SpaceMining.mp3')
@@ -93,8 +131,36 @@ class Engine:
         w_width, w_height = self.warning_symbol.get_width(), self.warning_symbol.get_height()  # get size
         self.warning_symbol = pygame.transform.scale(self.warning_symbol, (int(w_width/4), int(w_height/4)))
 
+        self._mastervolume = self.mastervolume
+        self._musicvolume = self.musicvolume
+        self._sound_effect_volume = self.sound_effect_volume
+
+        self.mastervolume = 0.5
+        self.musicvolume = 1
+        self.sound_effect_volume = 1
+        pygame.mixer.music.set_volume(self.mastervolume * self.musicvolume)
+
+        self.headerui = pygame.image.load("resources/img/uiheader.png").convert_alpha()
+        self.headerui = pygame.transform.scale(self.headerui, (int(self.headerui.get_rect().width/2), int(self.headerui.get_rect().height/2)))
+        self.headeruiflipped = pygame.transform.flip(self.headerui, True, False)
         self.clock = pygame.time.Clock()
         self.logger.log("Engine load complete")
+
+        self.sectorfont = pygame.font.Font("resources/fonts/batmanfa.ttf", 24)
+        self.sectortext = self.sectorfont.render("Sector 12-1-AB", True, colors.BLACK)
+        self.sectortextrect = self.sectortext.get_rect()
+        self.sectortextrect.center = (self.surface.get_width()/2, 18)
+
+
+    def distance_to_entity(self, entity, x: int, y: int) -> float:
+        if isinstance(entity, Entity):
+            return math.sqrt((entity.x - x) ** 2 + (entity.y - y) ** 2)
+        elif isinstance(entity, Player):
+            return math.dist((-self.px + self.surface.get_width()/2,-self.py + self.surface.get_height()/2),(x,y))
+
+        #math.dist((self.entity.x, self.entity.y),
+        #          (-self.engine.px + self.engine.surface.get_width() / 2,
+        #           -self.engine.py + self.engine.surface.get_height() / 2))
 
     def Render_Text(self, what, font:pygame.font.FontType, color, where, surf, centered=False):
         text:pygame.SurfaceType = font.render(what, 1, color)
@@ -141,6 +207,11 @@ class Engine:
 
             pygame.draw.circle(surf, YELLOW, pos, 3)
 
+        # draw a reticle around the targeted enemy, if there is one
+        if self.player.target is not None:
+            transparentsurface = pygame.Surface((85*2, 85*2), pygame.SRCALPHA)
+            pygame.draw.circle(transparentsurface,(255,0,0,64),(85,85),85,2)
+            surf.blit(transparentsurface,(int(self.player.target.x+self.px-85),int(self.player.target.y+self.py-85)))
         count = 0
         for object in self.objects:
             count += object.draw(surf,self.px,self.py)
@@ -152,7 +223,7 @@ class Engine:
         pygame.draw.rect(surf, (0, 0, 0), pygame.Rect(0, 0, 80, 50))
         self.Render_Text(str(int(self.clock.get_fps())), self.smallfont2, (255, 0, 0), (24, 18),surf)
 
-        pygame.draw.rect(surf,(80,80,80),pygame.Rect(80,0,surf.get_width()-80,50))
+        pygame.draw.rect(surf,(0,0,0),pygame.Rect(80,0,surf.get_width()-80,50))
 
         minirect = pygame.Rect(width-480+6, height-250+6, 480-12, 250-12)
         pygame.draw.rect(surf, (45,45,45), pygame.Rect(width-480+6, height-250+6, 480-12, 250-12))
@@ -160,20 +231,31 @@ class Engine:
 
         pygame.draw.circle(surf,(255,0,0),(int(minirect.centerx-self.px/12),int(minirect.centery-self.py/12)),6)
         pygame.draw.circle(surf,(255,255,0),(int(minirect.centerx+self.targetpx/12),int(minirect.centery+self.targetpy/12)),2)
+
+        # if the player is close enough to the space station to dock, display a text notification
+        if self.player.distance_to(self.station) < 250:
+            self.Render_Text("DOCK", self.smallfont2, (255, 255, 255), (135,25), surf, centered=True)
+
+            #self.Render_Text("WARNING: Space Station is in danger!", self.smallfont, (255, 0, 0), (width-480+24, height-250+24),surf,True)
+
         for object in self.objects:
             if not isinstance(object,Marker):
                 if isinstance(object, Entity):
                     if self.player.target == object:
+                        # draw a cross on the minimap at the player's targeted enemy
                         tpos = (int(minirect.centerx + (object.x - width / 2) / 12), int(minirect.centery + (object.y - height / 2) / 12))
                         pygame.draw.circle(surf, (255, 255, 0),
-                                           (tpos[0],
-                                            tpos[1]),4)
+                                           (tpos[0]+1,
+                                            tpos[1]+1),3)
                         pygame.draw.line(surf, (255, 255, 0),(tpos[0]-5,tpos[1]-5),(tpos[0]+5,tpos[1]+5),2)
                         pygame.draw.line(surf, (255, 255, 0),(tpos[0]-5,tpos[1]+5),(tpos[0]+5,tpos[1]-5),2)
+                        pygame.draw.circle(surf, (0, 128, 255),
+                                       (int(minirect.centerx + (object.ai.targetpos[0] - width / 2) / 12),
+                                        int(minirect.centery + (object.ai.targetpos[1] - height / 2) / 12)), 2)
                     else:
                         pygame.draw.circle(surf, (0, 128, 255),
-                                       (int(minirect.centerx + (object.target[0] - width / 2) / 12),
-                                        int(minirect.centery + (object.target[1] - height / 2) / 12)), 2)
+                                       (int(minirect.centerx + (object.ai.targetpos[0] - width / 2) / 12),
+                                        int(minirect.centery + (object.ai.targetpos[1] - height / 2) / 12)), 2)
                         pygame.draw.circle(surf, (255, 255, 255),
                                (int(minirect.centerx + (object.x-width/2) / 12), int(minirect.centery + (object.y-height/2) / 12)), 4)
 
@@ -200,14 +282,14 @@ class Engine:
 
             trect.centerx = 100
             trect.centery = 400
-            rotated_image, rrect = rot_center(self.targetsprite, trect, self.player.target.fireangle)
+            rotated_image, rrect = rot_center(self.targetsprite, trect, self.player.target.ai.look_angle)
             surf.blit(rotated_image,rrect)
 
-            self.Render_Text(f"Dist: {round(self.player.target.dist_to_player(),1)}", self.smallfont2, (255, 255, 255),
+            self.Render_Text(f"Dist: {round(self.player.target.ai.dist_to_player(),1)}", self.smallfont2, (255, 255, 255),
                              (100, 500), surf, True)
 
         if abs(self.px)>2730 or abs(self.py)>1330:
-            self.alert_sound.set_volume(0.05)
+            self.alert_sound.set_volume(0.05*self.mastervolume*self.sound_effect_volume)
             pygame.mixer.Sound.play(self.alert_sound)
 
             w_rect: pygame.rect.RectType = self.warning_symbol.get_rect()
@@ -218,6 +300,48 @@ class Engine:
             self.alert_sound.set_volume(0.0)
 
 
+        # render the hp bar under the overlay
+        hull_pct = self.player.hull / self.player.max_hull
+        hull_rect = pygame.Rect(0,0,int(hull_pct*410),10)
+        hull_rect.right = width/2-210
+        hull_rect.bottom = 35
+        pygame.draw.rect(surf,(0,180,0),hull_rect)
+
+
+        # render the player shield bar under the overlay
+        hull_pct = self.player.hull / self.player.max_hull
+        hull_rect = pygame.Rect(0,0,int(hull_pct*420),10)
+        hull_rect.right = width/2-215
+        hull_rect.bottom = 20
+        pygame.draw.rect(surf,(0,80,255),hull_rect)
+
+        # render the player energy bar under the overlay
+        hull_pct = self.player.energy / self.player.max_energy
+        hull_rect = pygame.Rect(0,0,int(hull_pct*420),10)
+        hull_rect.left = width/2+215
+        hull_rect.bottom = 20
+        pygame.draw.rect(surf,(255,255,0),hull_rect)
+
+        # render the player heat bar under the overlay
+        hull_pct = self.player.heat / self.player.max_heat
+        hull_rect = pygame.Rect(0,0,int(hull_pct*410),10)
+        hull_rect.left = width/2+210
+        hull_rect.bottom = 35
+        pygame.draw.rect(surf,(200,80,0),hull_rect)
+
+        #  render the overlay
+        headerRect = self.headerui.get_rect()
+        headerRect.right = width/2+50
+        headerRect.top = 0
+        surf.blit(self.headerui,headerRect)
+
+        headeruiflipped = self.headeruiflipped.get_rect()
+        headeruiflipped.left = width/2-50
+        headeruiflipped.top = 0
+        surf.blit(self.headeruiflipped,headeruiflipped)
+
+        # render the sector
+        surf.blit(self.sectortext,self.sectortextrect)
 
 
 

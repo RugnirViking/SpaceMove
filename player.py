@@ -28,9 +28,18 @@ class Player():
         self.angle_target = 0.0
         self.engine = engine
         self.angular_vel = 0
+        self.max_angular_vel = 350
         width, height = self.sprite.get_width(), self.sprite.get_height()  # get size
         self.sprite = pygame.transform.scale(self.sprite, (int(width / 6), int(height / 6)))
         self.target = None
+        self.hull = 100.0
+        self.max_hull = 100.0
+        self.shields = 100.0
+        self.max_shields = 100.0
+        self.energy = 100.0
+        self.max_energy = 100.0
+        self.heat = 50
+        self.max_heat = 100.0
 
     def draw(self, surf):
         self.angle = self.angle % 360
@@ -38,12 +47,12 @@ class Player():
         angle_error = (self.angle - self.angle_target) % 360
 
         if 0 < angle_error < 180:
-            self.angle -= ANGULAR_VELOCITY * self.engine.deltaTime
-            if angle_error < ANGULAR_VELOCITY * self.engine.deltaTime:
+            self.angle -= self.max_angular_vel * self.engine.deltaTime
+            if angle_error < self.max_angular_vel * self.engine.deltaTime:
                 self.angle = self.angle_target
         elif angle_error > 180:
-            self.angle += ANGULAR_VELOCITY * self.engine.deltaTime
-            if angle_error < ANGULAR_VELOCITY * self.engine.deltaTime:
+            self.angle += self.max_angular_vel * self.engine.deltaTime
+            if angle_error < self.max_angular_vel * self.engine.deltaTime:
                 self.angle = self.angle_target
         if abs(self.angle - self.angle_target) < 5:
             self.angle = self.angle_target
@@ -96,3 +105,9 @@ class Player():
         a =  self.target.y - playerpos[1]
         angle = math.atan2(o, a)
         return (angle * (180 / math.pi) - 180) % 360
+
+    def distance_to(self, object: Object) -> float:
+        return math.dist(
+            (-self.engine.px + self.engine.surface.get_width() / 2, -self.engine.py + self.engine.surface.get_height() / 2),
+            (object.x, object.y))
+

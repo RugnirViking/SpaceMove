@@ -7,7 +7,7 @@ from button import Button
 from colors import WHITE
 from engine import Engine
 from input_handlers import EventHandler
-
+from optionsmenu import OptionsMenu
 
 
 class PauseMenuHandler(EventHandler):
@@ -22,6 +22,11 @@ class PauseMenuHandler(EventHandler):
         startbuttonrect.centery = surf.get_rect().height/4+100
         self.buttons.append(Button("Resume",self.engine.smallfont,startbuttonrect,colors.WHITE,self.resume))
 
+        optionsbuttonrect = Rect(0,0,200,50)
+        optionsbuttonrect.centerx = surf.get_rect().centerx
+        optionsbuttonrect.centery = surf.get_rect().height/4+300
+        self.buttons.append(Button("Options",self.engine.smallfont,optionsbuttonrect,colors.WHITE,self.options))
+
         startbuttonrect2 = Rect(0,0,200,50)
         startbuttonrect2.centerx = surf.get_rect().centerx
         startbuttonrect2.centery = surf.get_rect().height/4+200
@@ -32,6 +37,8 @@ class PauseMenuHandler(EventHandler):
         self.textRect.centerx = surf.get_rect().centerx
         self.textRect.centery = surf.get_rect().height/4
 
+    def options(self, button):
+        return OptionsMenu(self.engine,self.engine.surface,self)
 
     def resume(self, button):
         return self.gamehandler
