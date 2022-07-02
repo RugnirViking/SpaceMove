@@ -21,6 +21,8 @@ class GameHandler(EventHandler):
 
     def on_render(self, surf) -> None:
         self.engine.draw(surf)
+        keys = pygame.key.get_pressed()
+        self.engine.gameUIcontroller.selections[1] = keys[pygame.K_2]
 
 
     def ev_keydown(self, key, event: pygame.event):
@@ -31,8 +33,16 @@ class GameHandler(EventHandler):
                 return DockMenuHandler(self.engine,self)
         if key == pygame.K_m:
             return MapHandler(self.engine,self)
-        if key == pygame.K_r:
-            self.engine.player.reset()
+        if key == pygame.K_1:
+            self.engine.gameUIcontroller.selections[0] = not self.engine.gameUIcontroller.selections[0]
+        if key == pygame.K_3:
+            self.engine.gameUIcontroller.selections[2] = not self.engine.gameUIcontroller.selections[2]
+        if key == pygame.K_4:
+            self.engine.gameUIcontroller.selections[3] = not self.engine.gameUIcontroller.selections[3]
+        if key == pygame.K_5:
+            self.engine.gameUIcontroller.selections[4] = not self.engine.gameUIcontroller.selections[4]
+        if key == pygame.K_l:
+            self.engine.player.mouselookmode = not self.engine.player.mouselookmode
 
     def ev_mousemove(self, pos, event: pygame.event):
         pass

@@ -1,9 +1,10 @@
 import math
+import random
 
 import pygame
 
 from object import Object
-from utils import rot_center, ANGULAR_VELOCITY
+from utils import rot_center, ANGULAR_VELOCITY, PAR_SPREAD
 
 from AI import EnemyAI, AI
 
@@ -12,7 +13,7 @@ from AI import EnemyAI, AI
 class Entity(Object):
     sprite: pygame.SurfaceType
 
-    def __init__(self, image, x, y, fac,name, engine,ai: AI,speed=200):
+    def __init__(self, image, x, y, fac,name, engine,ai: AI,hull,speed=200):
         super().__init__(image, x, y, fac,name)
         self.ai=ai
 
@@ -22,6 +23,13 @@ class Entity(Object):
         self.engine = engine
         self.loadcheck = False
         self.target_sprite = self.sprite.copy().convert_alpha()
+        self.hull=hull
+        # scale the target sprite so it fits into a 100x100 box while keeping its aspect ratio
+        if self.target_sprite.get_width()>self.target_sprite.get_height():
+            self.target_sprite = pygame.transform.scale(self.target_sprite, (100, int(100 * self.target_sprite.get_height() / self.target_sprite.get_width())))
+        else:
+            self.target_sprite = pygame.transform.scale(self.target_sprite, (int(100 * self.target_sprite.get_width() / self.target_sprite.get_height()), 100))
+        #self.target_sprite = pygame.transform.scale(self.target_sprite, (int(self.target_sprite.get_width() * 0.5), int(self.target_sprite.get_height() * 0.5)))
         brighten = 255
         self.target_sprite.fill((brighten, brighten, brighten), special_flags=pygame.BLEND_RGB_ADD)
         self.lastrect = None
@@ -30,8 +38,14 @@ class Entity(Object):
         self.hull = 100.0
         self.max_hull = 100.0
 
+    def is_on_screen(self, surf: pygame.SurfaceType) -> bool:
+        return self.lastrect.colliderect(surf.get_rect())
+
     def dist_to_player(self):
         return self.engine.distance_to_entity(self.engine.player, self.x, self.y)
+
+    def collision_radius(self) -> int:
+        return max(self.sprite.get_width(), self.sprite.get_height()) // 2
 
     def draw(self, surf: pygame.SurfaceType, px, py):
 
@@ -86,6 +100,16 @@ class Entity(Object):
             self.x -= self.speed * math.sin(self.angle * (math.pi / 180)) * self.engine.deltaTime
             self.y -= self.speed * math.cos(self.angle * (math.pi / 180)) * self.engine.deltaTime
 
+            width, height = self.engine.surface.get_size()
+            if random.random() > 0.5:
+                color = (255,random.randrange(0,255),0)
+                self.engine.particlemanager.add_particle(
+                    [self.x+self.engine.player.x, self.y+self.engine.player.y],
+                    [400 * math.sin((self.angle + random.randrange(-PAR_SPREAD, PAR_SPREAD, 1)) * (math.pi / 180)),
+                     400 * math.cos((self.angle + random.randrange(-PAR_SPREAD, PAR_SPREAD, 1)) * (math.pi / 180))], color,
+                    random.randint(3, 5), random.random() + 1, 0
+                )
+
         if err > (2000 * self.engine.deltaTime) and not snapped:
             o = self.ai.targetpos[0] - self.x
             a = self.ai.targetpos[1] - self.y
@@ -108,3 +132,6 @@ class Entity(Object):
 
     def get_rect(self) -> pygame.rect.RectType:
         return self.lastrect
+
+    def out_of_bounds(self):
+        return abs(self.x) > 2730 or abs(self.y) > 1330

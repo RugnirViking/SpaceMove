@@ -1,6 +1,6 @@
 import pygame
 ANGULAR_VELOCITY = 350
-
+PAR_SPREAD = 8
 def lerp(a: float, b: float, t: float) -> float:
     """Linear interpolate on the scale given by a to b, using t as the point on that scale.
     Examples

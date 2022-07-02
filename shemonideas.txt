@@ -1,0 +1,77 @@
+Space stations:
+
+ - some screen common to all space stations (like a bar or something for missions maybe)
+ - shops (different shops per station, maybe some have no shops at all!)
+ - Dockyard buy or sell ships
+ - repair button/bay
+ 
+ guilds? 
+  - several different guild options that offer quest chains
+ 
+ map screen details:
+	- planet shows resources, whether its inhabited, the amount of population, who is the owner, whats your realation with the factions/planet
+	- what is the primary industry + maybe some indication of millitary & economic strength
+	whenever the player visits the planet they can see for themselves prosperity, like ships driving around and stuff
+	
+	some kind of rumors about trade (platinum in short supply on istvaan 9)
+	
+	trade ships doing their own thing is cool
+	individual traders but also trade companies
+	maybe supply and demand sim
+
+ asteroids enter and leave system, so limited amount of time for some larger ones 
+ exploration - some undiscovered stuff out there
+ 
+ 
+ ship insurance
+ 
+ when you die:
+	escape pod tiny ship?
+	buy a new ship or transfer to friendly?
+	
+ piracy in high reward sectors, ambush tactics, hiding outside the map/in/under asteroids
+ pirate havens / stations
+ 
+ missions for the pirates and missions against pirates
+ also smugglers who mostly avoid you and everyone
+ 
+ mining:
+	use the right kind of storage - gasses/liquids/solids, corrosive and/or requires cooling/explosive
+	use the right harvester for the right asteroid, some need drills, some you can shoot at collect the bits
+	haul an attached hulk/barge to store your goodies in
+	make a space train
+	heavy barges when full mean you have to leave some behind to collect later? they have a tracker ?
+	combat barge? point defence turret etc/ pulse laser
+	heavy shielded barges 
+	haul a rented company barge - set a beacon for them to pick up but pirates might lock on too
+	maintinence barge?
+	refinery
+	with ai crew etc there can be a morale component
+	happy crew gives you bonuses
+	low morale gives bad events/sabotage
+	new crew might sabotage you if you have enemies
+	you can invest in security
+	space galley slaves
+	indentured worker
+	
+	
+  basic stuff
+	limited fuel
+	let ship drift to use less fuel
+	asteroid crashes, they move when you shoot them so you have to circle
+	components do componenty things
+	weight in total but also other hull limitations like only so much weapon/engine/fuel/cargo space and mods it can support
+	
+	
+  radar:
+  different symbols for different things asteroid/ship/traders/ combat
+  size shows size of contact
+  sealth ships show as smaller than they are? you can stealth too
+  add noise to minimap/rader?
+  different views on the minimap for different specturms
+  
+  transpondere
+	if you are in a civilised sector they want it on
+	if you are near pirates best to have it offer, 50% salg køb nu
+	
+	

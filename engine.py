@@ -6,6 +6,8 @@ from pygame import SurfaceType
 
 import colors
 from AI import EnemyAI, SquarePatrolAI
+from Asteroid import Asteroid
+from asteroid_manager import AsteroidManager
 from background import Background, newstar
 from entity import Entity
 from input_handlers import BaseEventHandler
@@ -20,8 +22,11 @@ from colors import WHITE, DARKGREY, LIGHTGREY, YELLOW
 from marker import Marker
 from object import Object
 from optionsmenu import OptionsMenu
+from particlemanager import ParticleManager
 from player import Player
 from utils import Singleton, rot_center, QuadEaseInOut
+import gameUIcontroller
+
 
 
 class Engine:
@@ -67,12 +72,21 @@ class Engine:
     def sound_effect_volume(self, val):
         self._sound_effect_volume = val
 
+    @property
+    def width(self):
+        return self.surface.get_width()
+
+    @property
+    def height(self):
+        return self.surface.get_height()
+
     logger: Logger
 
     def __init__(self,surf: pygame.SurfaceType) -> None:
         self.targetsprite = None
         self.logger = Logger()
         self.surface = surf
+        self.asteroid_manager = AsteroidManager()
 
         self.player: Player = Player("resources/img/lightfoot.png",self)
         self.getTicksLastFrame = 0
@@ -95,6 +109,7 @@ class Engine:
         self._musicvolume = 1
         self._sound_effect_volume = 1
         self.flashrising = True
+        self.mouse_pos = (0,0)
 
         self.explosion_group = pygame.sprite.Group()
 
@@ -113,20 +128,23 @@ class Engine:
             star_loc_y = random.randrange(0, self.surface.get_height())
             self.star_field_fast.append([star_loc_x, star_loc_y])
 
-        self.bg_tiles.append(Background("resources/img/sun.png",100,100,1))
+        self.bg_tiles.append(Background("resources/img/sun.png",100,100,1,1,False))
         self.bg_tiles.append(Background("resources/img/planet1.png",1000,100,0.8,0.5))
         self.station = Object("resources/img/spacestation.png",1000,1000,1,"Station")
         self.objects.append(self.station)
-        self.objects.append(Entity("resources/img/flea.png",1800,1000,0.5,"Flea-class Fighter",self,SquarePatrolAI(self)))
+        self.objects.append(Entity("resources/img/flea.png",1800,1000,0.5,"Flea-class Fighter",self,SquarePatrolAI(self),100))
+
+        # spawn four asteroids
+        self.asteroids = []
+        for i in range(178):
+            self.asteroids.append(Asteroid(random.randrange(-2730,2730),random.randrange(-1330,1330),0.5,"Asteroid",self,self.asteroid_manager))
+            self.objects.append(self.asteroids[i])
 
         pygame.mixer.init()
         pygame.mixer.music.load('resources/sound/SpaceMining.mp3')
         pygame.mixer.music.play(-1)
 
         self.alert_sound = pygame.mixer.Sound("resources/sound/alert.wav")
-        self.warning_symbol = pygame.image.load("resources/img/warning.png").convert_alpha()
-        w_width, w_height = self.warning_symbol.get_width(), self.warning_symbol.get_height()  # get size
-        self.warning_symbol = pygame.transform.scale(self.warning_symbol, (int(w_width/4), int(w_height/4)))
 
         self._mastervolume = self.mastervolume
         self._musicvolume = self.musicvolume
@@ -141,25 +159,30 @@ class Engine:
         self.flash_start_time = 0
         self.t = 0
 
-        self.headerui = pygame.image.load("resources/img/uiheader.png").convert_alpha()
-        self.headerui = pygame.transform.scale(self.headerui, (int(self.headerui.get_rect().width/2), int(self.headerui.get_rect().height/2)))
-        self.headeruiflipped = pygame.transform.flip(self.headerui, True, False)
         self.clock = pygame.time.Clock()
         self.logger.log("Engine load complete")
 
         self.sectorfont = pygame.font.Font("resources/fonts/batmanfa.ttf", 24)
-        self.sectortext = self.sectorfont.render("Sector 12-1-AB", True, colors.BLACK)
-        self.sectortextrect = self.sectortext.get_rect()
-        self.sectortextrect.center = (self.surface.get_width()/2, 18)
-
+        self.particlemanager = ParticleManager(self)
+        self.gameUIcontroller = gameUIcontroller.GameUIController(self)
         self.damagetext = []
+        self.damagefont = pygame.font.Font("resources/fonts/batmanfa.ttf", 24)
 
+    def is_in_radar_range(self,x,y):
+        return (x + self.player.x - self.width / 2) ** 2 + (
+                    y + self.player.y - self.height / 2) ** 2 < self.player.minimapradius ** 2
+
+    def is_in_bounds(self,x,y):
+        return abs(x) < 2730 and abs(y) < 1330
+
+    def is_on_screen(self,x,y):
+        return x > -self.player.x-self.width/2 and x < -self.player.x+self.width/2 and y > -self.player.y-self.height/2 and y < -self.player.y+self.height/2
 
     def distance_to_entity(self, entity, x: int, y: int) -> float:
         if isinstance(entity, Entity):
             return math.sqrt((entity.x - x) ** 2 + (entity.y - y) ** 2)
         elif isinstance(entity, Player):
-            return math.dist((-self.player.x + self.surface.get_width()/2,-self.player.y + self.surface.get_height()/2),(x,y))
+            return math.dist((-self.player.x + self.width/2,-self.player.y + self.height/2),(x,y))
 
         #math.dist((self.entity.x, self.entity.y),
         #          (-self.engine.px + self.engine.surface.get_width() / 2,
@@ -174,6 +197,13 @@ class Engine:
             surf.blit(text, rect)
         else:
             surf.blit(text, where)
+    def minimap_dist_convert(self, dist: float) -> float:
+        w_minimapwidth = 2730*2
+        w_minimapheight = 1330*2
+        s_minimapwidth = 468
+        s_minimapheight = 238
+        return dist * (s_minimapwidth / w_minimapwidth)
+
 
     def draw(self,surf: pygame.SurfaceType) -> None:
 
@@ -183,6 +213,10 @@ class Engine:
         # deltaTime in seconds.
         self.deltaTime = (t - self.getTicksLastFrame) / 1000.0
         self.getTicksLastFrame = t
+        mx, my = pygame.mouse.get_pos()
+        self.mouse_pos = (mx, my)
+
+        self.update()
         if t > self.flash_end_time:
             self.flash_end_time = t + 500
             self.flash_start_time = t
@@ -222,7 +256,8 @@ class Engine:
         # draw a reticle around the targeted enemy, if there is one
         if self.player.target is not None:
             transparentsurface = pygame.Surface((85*2, 85*2), pygame.SRCALPHA)
-            pygame.draw.circle(transparentsurface,(255,0,0,64),(85,85),85,2)
+            pygame.draw.circle(transparentsurface,(255,0,0),(85,85),85,2)
+            transparentsurface.set_alpha(128)
             surf.blit(transparentsurface,(int(self.player.target.x+self.player.x-85),int(self.player.target.y+self.player.y-85)))
         count = 0
         for object in self.objects:
@@ -230,144 +265,13 @@ class Engine:
             if object.dead:
                 self.objects.remove(object)
 
+        self.particlemanager.draw(surf)
         self.player.draw(surf)
 
-        if self.player.is_in_radiation:
-            # render the warning symbol partially transparent
-            t_surf = pygame.Surface((self.warning_symbol.get_width(), self.warning_symbol.get_height()),
-                                    pygame.SRCALPHA)
-            a = int(QuadEaseInOut(0,255,500).ease(t-self.flash_start_time))
-            if self.flashrising:
-                a = 255-a
-            self.warning_symbol.set_alpha(a)
-            w_rect = self.warning_symbol.get_rect()
-            w_rect.centerx = self.surface.get_width() - 240
-            w_rect.bottom = self.surface.get_height() - 300
-            t_surf.blit(self.warning_symbol, (0, 0))
-            surf.blit(t_surf, w_rect)
+        self.gameUIcontroller.draw(surf,width,height)
 
-            self.Render_Text("Radiation", self.sectorfont, colors.RED, (w_rect.centerx, w_rect.centery - 80), surf, centered=True)
-
-
-        pygame.draw.rect(surf, (0, 0, 0), pygame.Rect(0, 0, 80, 50))
-        self.Render_Text(str(int(self.clock.get_fps())), self.smallfont2, (255, 0, 0), (24, 18),surf)
-
-        pygame.draw.rect(surf,(0,0,0),pygame.Rect(80,0,surf.get_width()-80,50))
-
-        minirect = pygame.Rect(width-480+6, height-250+6, 480-12, 250-12)
-        pygame.draw.rect(surf, (45,45,45), pygame.Rect(width-480+6, height-250+6, 480-12, 250-12))
-        pygame.draw.rect(surf, LIGHTGREY, pygame.Rect(width-480+6, height-250+6, 480-12, 250-12),12)
-
-        pygame.draw.circle(surf,(255,0,0),(int(minirect.centerx-self.player.x/12),int(minirect.centery-self.player.y/12)),6)
-        pygame.draw.circle(surf,(255,255,0),(int(minirect.centerx+self.targetpx/12),int(minirect.centery+self.targetpy/12)),2)
-
-        # if the player is close enough to the space station to dock, display a text notification
-        if self.player.distance_to(self.station) < 250:
-            self.Render_Text("DOCK", self.smallfont2, (255, 255, 255), (135,25), surf, centered=True)
-
-
-        for object in self.objects:
-            if not isinstance(object,Marker):
-                if isinstance(object, Entity):
-                    if self.player.target == object:
-                        # draw a cross on the minimap at the player's targeted enemy
-                        tpos = (int(minirect.centerx + (object.x - width / 2) / 12), int(minirect.centery + (object.y - height / 2) / 12))
-                        pygame.draw.circle(surf, (255, 255, 0),
-                                           (tpos[0]+1,
-                                            tpos[1]+1),3)
-                        pygame.draw.line(surf, (255, 255, 0),(tpos[0]-5,tpos[1]-5),(tpos[0]+5,tpos[1]+5),2)
-                        pygame.draw.line(surf, (255, 255, 0),(tpos[0]-5,tpos[1]+5),(tpos[0]+5,tpos[1]-5),2)
-                        pygame.draw.circle(surf, (0, 128, 255),
-                                       (int(minirect.centerx + (object.ai.targetpos[0] - width / 2) / 12),
-                                        int(minirect.centery + (object.ai.targetpos[1] - height / 2) / 12)), 2)
-                    else:
-                        pygame.draw.circle(surf, (0, 128, 255),
-                                       (int(minirect.centerx + (object.ai.targetpos[0] - width / 2) / 12),
-                                        int(minirect.centery + (object.ai.targetpos[1] - height / 2) / 12)), 2)
-                        pygame.draw.circle(surf, (255, 255, 255),
-                               (int(minirect.centerx + (object.x-width/2) / 12), int(minirect.centery + (object.y-height/2) / 12)), 4)
-
-
-
-        self.Render_Text(f"{round(self.player.x)}, {round(self.player.y)}", self.smallfont2, (255, 255, 255), (width-580, height-20),surf,True)
-        mx, my = pygame.mouse.get_pos()
-        mp = (mx,my)
-        mp_world = self.screen_to_world(mp)
-        self.Render_Text(f"{round(mx)}, {round(my)} ({round(mp_world[0]-surf.get_width()/2)}, {round(mp_world[1]-surf.get_height()/2)})", self.smallfont2, (255, 255, 255), (width-580, height-45),surf,True)
-
-        self.Render_Text(f"{round(self.targetpx)}, {round(self.targetpy)}", self.smallfont2, (255, 255, 255), (width-580, height-70),surf,True)
-
-        if self.player.target and not self.targetsprite:
-            twidth, theight = self.player.target.target_sprite.get_width(), self.player.target.target_sprite.get_height()
-            self.targetsprite = self.player.target.target_sprite#pygame.transform.scale(self.player.target.target_sprite, (int(twidth), int(theight)))
-        elif self.player.target and self.targetsprite:
-
-            trect: pygame.rect.RectType = self.targetsprite.get_rect()
-            twidth, theight = trect.width, trect.height
-            largest = max(twidth,theight)/1.5
-            pygame.draw.circle(surf,(45,45,45),(100,400),int(largest))
-            pygame.draw.circle(surf,(165,165,165),(100,400),int(largest),2)
-
-            trect.centerx = 100
-            trect.centery = 400
-            rotated_image, rrect = rot_center(self.targetsprite, trect, self.player.target.ai.look_angle)
-            surf.blit(rotated_image,rrect)
-
-            self.Render_Text(f"Dist: {round(self.player.target.ai.dist_to_player(),1)}", self.smallfont2, (255, 255, 255),
-                             (100, 500), surf, True)
-
-        # update and draw all the damagetext
-        for text in self.damagetext:
-            text.update(self.deltaTime)
-            text.draw(surf)
-            if not text.active:
-                self.damagetext.remove(text)
-
-
-        # render the hp bar under the overlay
-        hull_pct = self.player.hull / self.player.max_hull
-        hull_rect = pygame.Rect(0,0,int(hull_pct*410),10)
-        hull_rect.right = width/2-210
-        hull_rect.bottom = 35
-        pygame.draw.rect(surf,(0,180,0),hull_rect)
-
-
-        # render the player shield bar under the overlay
-        hull_pct = self.player.hull / self.player.max_hull
-        hull_rect = pygame.Rect(0,0,int(hull_pct*420),10)
-        hull_rect.right = width/2-215
-        hull_rect.bottom = 20
-        pygame.draw.rect(surf,(0,80,255),hull_rect)
-
-        # render the player energy bar under the overlay
-        hull_pct = self.player.energy / self.player.max_energy
-        hull_rect = pygame.Rect(0,0,int(hull_pct*420),10)
-        hull_rect.left = width/2+215
-        hull_rect.bottom = 20
-        pygame.draw.rect(surf,(255,255,0),hull_rect)
-
-        # render the player heat bar under the overlay
-        hull_pct = self.player.heat / self.player.max_heat
-        hull_rect = pygame.Rect(0,0,int(hull_pct*410),10)
-        hull_rect.left = width/2+210
-        hull_rect.bottom = 35
-        pygame.draw.rect(surf,(200,80,0),hull_rect)
-
-        #  render the overlay
-        headerRect = self.headerui.get_rect()
-        headerRect.right = width/2+50
-        headerRect.top = 0
-        surf.blit(self.headerui,headerRect)
-
-        headeruiflipped = self.headeruiflipped.get_rect()
-        headeruiflipped.left = width/2-50
-        headeruiflipped.top = 0
-        surf.blit(self.headeruiflipped,headeruiflipped)
-
-        # render the sector
-        surf.blit(self.sectortext,self.sectortextrect)
-
-
+    def update(self):
+        self.particlemanager.update(self.deltaTime)
 
     def mouseup(self, pos, btn, event: pygame.event):
         x, y = pos
@@ -394,8 +298,8 @@ class Engine:
                 worldpos = self.screen_to_world(pos)
                 self.trim_markers()
                 self.objects.append(Marker("resources/img/marker1.png",worldpos[0],worldpos[1],1000))
-                self.targetpx = worldpos[0]-self.surface.get_width()/2
-                self.targetpy = worldpos[1]-self.surface.get_height()/2
+                self.targetpx = worldpos[0]-self.width/2
+                self.targetpy = worldpos[1]-self.height/2
         elif btn == pygame.BUTTON_RIGHT:
             for entity in self.objects:
                 if isinstance(entity,Entity):

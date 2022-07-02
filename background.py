@@ -34,11 +34,14 @@ def newstar(width,height,engine,star,fac=1):
 class Background():
     sprite: pygame.SurfaceType
 
-    def __init__(self, image, x, y, factor,scale=1):
+    def __init__(self, image, x, y, factor,scale=1,a=True):
         self.x=x
         self.y=y
         self.factor = factor
-        self.sprite = pygame.image.load(image).convert_alpha()
+        if a:
+            self.sprite = pygame.image.load(image).convert_alpha()
+        else:
+            self.sprite = pygame.image.load(image).convert()
         self.width, self.height = self.sprite.get_width(), self.sprite.get_height()  # get size
         self.sprite = pygame.transform.scale(self.sprite, (int(self.width*scale), int(self.height*scale)))
 

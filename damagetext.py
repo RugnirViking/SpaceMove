@@ -7,8 +7,8 @@ class DamageText():
     def __init__(self, x, y, text, color, font):
         self.x = x
         self.y = y
-        self.dx = random.randrange(-20, 20)
-        self.dy = 0
+        self.dx = random.randrange(-200, 200)
+        self.dy = 100
 
         self.text = font.render(str(text), True, color)
         self.width = self.text.get_width()
