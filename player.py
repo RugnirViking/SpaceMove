@@ -54,6 +54,7 @@ class Player():
 
         self.shieldshitsound = pygame.mixer.Sound("resources/sound/shieldhit.wav")
         self.shieldsdownsound = pygame.mixer.Sound("resources/sound/shieldsdown.wav")
+        self.lasersound = pygame.mixer.Sound("resources/sound/pew.mp3")
 
         self.minimapradius = 500
         converted = self.engine.minimap_dist_convert(self.minimapradius)
@@ -63,31 +64,42 @@ class Player():
         self.tsurf.set_colorkey((0, 0, 0))
 
         self.cooldowns = [0, 0]
-        self.cooldown_time = [250, 2000]
+        self.cooldown_time = [300, 2000]
         self.weapons = [self.firelaser, self.firemissile]
         self.queue = []
-
+        self.lookangle = 0
         self.mouselookmode = False
+        self.laserdamage = 10
 
     def collision_radius(self) -> int:
         return max(self.sprite.get_width(), self.sprite.get_height()) // 2
 
+    def laserhit(self,target):
+        target.take_damage(self.laserdamage)
+
+
     def firelaser(self):
         if self.engine.gameUIcontroller.selections[0] and self.target:
             a = self.targetAngle() + 180
-            for x in range(10):
-                self.engine.particlemanager.add_particle([self.engine.width / 2, self.engine.height / 2],
-                                                         [400 * math.sin((a + random.randrange(-PAR_SPREAD, PAR_SPREAD, 1)) * (math.pi / 180)),
-                                                          400 * math.cos((a + random.randrange(-PAR_SPREAD, PAR_SPREAD, 1)) * (math.pi / 180))],
-                                                         (0, 0, 255), random.randint(3, 5), random.random() + 1, 0)
+            spawnpos = (-self.x,-self.y)
+
+            self.engine.projectilemanager.add_projectile(spawnpos[0],spawnpos[1],
+                                                         1400 * math.sin((a * (math.pi / 180))),
+                                                         1400 * math.cos((a * (math.pi / 180))),
+                                                         "resources/img/laserbolt.png",(255,255,255),
+                                                         self.target,self.laserhit)
+            self.engine.playsound(self.lasersound,0.5)
             self.cooldowns[0] = self.cooldown_time[0]
+
         elif self.engine.gameUIcontroller.selections[0] and self.mouselookmode:
             a = self.get_angle_to_mouse(self.engine.surface)
-            for x in range(10):
-                self.engine.particlemanager.add_particle([self.engine.width / 2, self.engine.height / 2],
-                       [400 * math.sin((a + random.randrange(-PAR_SPREAD, PAR_SPREAD, 1)) * (math.pi / 180)),
-                        400 * math.cos((a + random.randrange(-PAR_SPREAD, PAR_SPREAD, 1)) * (math.pi / 180))],
-                        (0, 0, 255), random.randint(3, 5), random.random() + 1, 0)
+            spawnpos = (-self.x,-self.y)
+
+            self.engine.projectilemanager.add_projectile(spawnpos[0],spawnpos[1],
+                                                         1400 * math.sin((a * (math.pi / 180))),
+                                                         1400 * math.cos((a * (math.pi / 180))),
+                                                         "resources/img/laserbolt.png",(255,255,255))
+            self.engine.playsound(self.lasersound,0.5)
             self.cooldowns[0] = self.cooldown_time[0]
 
     def get_angle_to_mouse(self,surf) -> float:
@@ -95,7 +107,7 @@ class Player():
         return (math.atan2(mx - surf.get_rect().centerx, my - surf.get_rect().centery) * (180 / math.pi))%360
 
     def spawntrailparticle(self,i):
-        if self.engine.gameUIcontroller.selections[1] and self.target:
+        if self.target:
             a = self.targetAngle() + 180
             for x in range(1):
                 self.engine.particlemanager.add_particle([self.engine.width / 2, self.engine.height / 2],
@@ -126,7 +138,7 @@ class Player():
         for i in range(len(self.queue)):
             if self.queue[i][0] < 0:
                 self.queue[i][1](self.queue[i][2])
-                self.queue.pop(i)
+                del self.queue[i]
                 break
             else:
                 self.queue[i][0] -= dt * 1000
@@ -178,6 +190,10 @@ class Player():
                 angle = math.atan2(o, a)
                 self.set_new_angle(angle * (180 / math.pi) - 180)
 
+            if self.target:
+                if self.target.dead:
+                    self.target=None
+
             if abs(self.x) > 2730 or abs(self.y) > 1330:
                 self.engine.alert_sound.set_volume(0.05 * self.engine.mastervolume * self.engine.sound_effect_volume)
                 pygame.mixer.Sound.play(self.engine.alert_sound)
@@ -211,13 +227,17 @@ class Player():
                 mx, my = pygame.mouse.get_pos()
                 rotangle = math.atan2(mx - surf.get_rect().centerx, my - surf.get_rect().centery) * (180 / math.pi)-180
                 rotangle = rotangle % 360
+                self.lookangle = rotangle
             elif self.target:
                 rotangle = self.targetAngle()
+                self.lookangle = rotangle
             else:
                 rotangle = self.angle
+                self.lookangle = rotangle
             rotated_image, rect = rot_center(self.sprite, rect, rotangle)
 
             surf.blit(rotated_image, rect)
+
 
     def set_new_angle(self, angle):
         self.angle_target = angle % 360

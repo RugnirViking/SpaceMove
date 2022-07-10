@@ -34,6 +34,7 @@ class Asteroid(Entity):
         self.rotations = asteroid_manager.rockimgs[img]
         self.sprite = self.rotations[0][0]
         super().__init__("skip", x, y, fac, name, engine, self.ai,100)
+        self.width, self.height = self.sprite.get_width(), self.sprite.get_height()  # get size
 
 
 

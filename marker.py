@@ -11,7 +11,7 @@ class Marker(Object):
 
     def __init__(self, image, x, y, time):
         super().__init__(image, x, y,0.25,"Marker")
-
+        self.sprite.set_colorkey((0, 0, 0))
         self.start = pygame.time.get_ticks()
         self.end = time
 

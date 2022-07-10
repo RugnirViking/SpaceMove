@@ -12,6 +12,7 @@ class Object():
         else:
             self.sprite = pygame.image.load(image).convert_alpha()
             width, height = self.sprite.get_width(), self.sprite.get_height()  # get size
+            self.width, self.height = width, height
             self.sprite = pygame.transform.scale(self.sprite, (int(width*fac), int(height*fac)))
         self.name=name
         self.dead = False

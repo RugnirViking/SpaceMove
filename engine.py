@@ -24,6 +24,7 @@ from object import Object
 from optionsmenu import OptionsMenu
 from particlemanager import ParticleManager
 from player import Player
+from projectilemanager import ProjectileManager
 from utils import Singleton, rot_center, QuadEaseInOut
 import gameUIcontroller
 
@@ -164,9 +165,10 @@ class Engine:
 
         self.sectorfont = pygame.font.Font("resources/fonts/batmanfa.ttf", 24)
         self.particlemanager = ParticleManager(self)
+        self.projectilemanager = ProjectileManager(self)
         self.gameUIcontroller = gameUIcontroller.GameUIController(self)
         self.damagetext = []
-        self.damagefont = pygame.font.Font("resources/fonts/batmanfa.ttf", 24)
+        self.damagefont = pygame.font.Font(None, 24)
 
     def is_in_radar_range(self,x,y):
         return (x + self.player.x - self.width / 2) ** 2 + (
@@ -187,6 +189,10 @@ class Engine:
         #math.dist((self.entity.x, self.entity.y),
         #          (-self.engine.px + self.engine.surface.get_width() / 2,
         #           -self.engine.py + self.engine.surface.get_height() / 2))
+
+    def playsound(self,sound,vol=0.95):
+        sound.set_volume(vol * self.mastervolume * self.sound_effect_volume)
+        pygame.mixer.find_channel(True).play(sound)
 
     def Render_Text(self, what, font:pygame.font.FontType, color, where, surf, centered=False):
         text:pygame.SurfaceType = font.render(what, 1, color)
@@ -250,28 +256,46 @@ class Engine:
 
             pygame.draw.circle(surf, YELLOW, pos, 3)
 
+        pos = self.world_to_screen((-2730, -1330))
+        pygame.draw.rect(surf, colors.RED, (pos[0],pos[1],2730*2,1330*2), 15)
+
         self.explosion_group.draw(surf)
         self.explosion_group.update(self.deltaTime)
 
-        # draw a reticle around the targeted enemy, if there is one
-        if self.player.target is not None:
-            transparentsurface = pygame.Surface((85*2, 85*2), pygame.SRCALPHA)
-            pygame.draw.circle(transparentsurface,(255,0,0),(85,85),85,2)
-            transparentsurface.set_alpha(128)
-            surf.blit(transparentsurface,(int(self.player.target.x+self.player.x-85),int(self.player.target.y+self.player.y-85)))
         count = 0
+
+
         for object in self.objects:
             count += object.draw(surf,self.player.x,self.player.y)
             if object.dead:
                 self.objects.remove(object)
 
+        # draw a reticle around the targeted enemy, if there is one
+        if self.player.target is not None:
+            fac = 0.75
+            transparentsurface = pygame.Surface(
+                (self.player.target.width * 2 * fac, self.player.target.width * 2 * fac), pygame.SRCALPHA)
+
+            pygame.draw.circle(transparentsurface, (255, 0, 0),
+                               (self.player.target.width * fac, self.player.target.width * fac),
+                               self.player.target.width * fac, 2)
+            transparentsurface.set_alpha(128)
+            surf.blit(transparentsurface, (
+            int(self.player.target.x + self.player.x - self.player.target.width * fac),
+            int(self.player.target.y + self.player.y - self.player.target.width * fac)))
+
         self.particlemanager.draw(surf)
+        self.projectilemanager.draw(surf)
         self.player.draw(surf)
 
         self.gameUIcontroller.draw(surf,width,height)
 
     def update(self):
         self.particlemanager.update(self.deltaTime)
+        self.projectilemanager.update(self.deltaTime)
+        for object in self.objects:
+            if object.dead:
+                self.objects.remove(object)
 
     def mouseup(self, pos, btn, event: pygame.event):
         x, y = pos
@@ -290,7 +314,7 @@ class Engine:
 
                 self.trim_markers()
                 # it makes no sense that adding half the screen's size to this position would work, and yet here we are.
-                self.objects.append(Marker("resources/img/marker1.png",worldx+self.surface.get_width()/2,worldy+self.surface.get_height()/2,500))
+                self.objects.append(Marker("resources/img/marker2.png",worldx+self.surface.get_width()/2,worldy+self.surface.get_height()/2,500))
                 self.targetpx = worldx
                 self.targetpy = worldy
                 pass
@@ -318,4 +342,4 @@ class Engine:
         return (pos[0]-self.player.x*fac,pos[1]-self.player.y*fac)
 
     def world_to_screen(self,pos,fac=1):
-        return (self.player.x*fac+pos[0],self.player.y*fac+pos[1])
+        return (self.player.x*fac+pos[0]+self.width/2,self.player.y*fac+pos[1]+self.height/2)

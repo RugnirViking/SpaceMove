@@ -3,6 +3,7 @@ import random
 
 import pygame
 
+from damagetext import DamageText
 from object import Object
 from utils import rot_center, ANGULAR_VELOCITY, PAR_SPREAD
 
@@ -37,6 +38,39 @@ class Entity(Object):
         self.speed=speed
         self.hull = 100.0
         self.max_hull = 100.0
+        self.radius = self.sprite.get_width() // 2
+
+    def die(self):
+        # release a large burst of particles
+        for i in range(0, 100):
+            pos = (self.x+self.engine.player.x,self.y+self.engine.player.y)
+            if random.random()>0.5:
+                grey = random.randint(0, 255)
+                self.engine.particlemanager.add_particle([pos[0], pos[1]],
+                                                         [random.randint(-500, 500), random.randint(-500, 500)],
+                                                         (255, grey, 0), random.randint(3, 5), random.random() * 0.2 + 0.2, 0)
+            else:
+
+                grey = random.randint(0, 255)
+                self.engine.particlemanager.add_particle([pos[0], pos[1]],
+                                                         [random.randint(-500, 500), random.randint(-500, 500)],
+                                                         (grey, grey, grey), random.randint(3, 5), random.random() * 0.2 + 0.2, 0)
+
+    def take_damage(self, damage):
+        self.hull -= damage
+        if self.hull <= 0:
+            self.dead = True
+            self.die()
+        else:
+            pos = (self.x+self.engine.player.x,self.y+self.engine.player.y)
+            self.engine.damagetext.append(
+                DamageText(pos[0],pos[1],f"-{round(damage)}", (255, 180, 80), self.engine.damagefont))
+            # release a burst of particles
+            for i in range(10):
+                grey = random.randint(128, 255)
+                self.engine.particlemanager.add_particle([pos[0], pos[1]],
+                                                         [random.randint(-500, 500), random.randint(-500, 500)],
+                                                         (255, 255, 255), random.randint(3, 5), random.random()*0.2 + 0.2, 0)
 
     def is_on_screen(self, surf: pygame.SurfaceType) -> bool:
         return self.lastrect.colliderect(surf.get_rect())

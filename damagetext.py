@@ -11,6 +11,7 @@ class DamageText():
         self.dy = 100
 
         self.text = font.render(str(text), True, color)
+        self.text_outline = font.render(str(text), True, (10, 10, 10))
         self.width = self.text.get_width()
         self.height = self.text.get_height()
         self.timer = 0
@@ -25,5 +26,13 @@ class DamageText():
         self.x+=self.dx*dt
 
     def draw(self, surface):
-        self.text.set_alpha(255-self.timer*255)
-        surface.blit(self.text, (self.x, self.y))
+        newsurf = pygame.Surface((self.width+4, self.height+4))
+        newsurf.blit(self.text_outline, (0, 0))
+        newsurf.blit(self.text_outline, (0, 4))
+        newsurf.blit(self.text_outline, (4, 0))
+        newsurf.blit(self.text_outline, (4, 4))
+
+        newsurf.blit(self.text, (2,2))
+        newsurf.set_alpha(255-self.timer*255)
+        newsurf.set_colorkey((0, 0, 0))
+        surface.blit(newsurf, (self.x, self.y))

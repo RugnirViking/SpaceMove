@@ -11,7 +11,8 @@ class AsteroidManager():
                  "resources/img/stone7.png", "resources/img/stone8.png", "resources/img/stone9.png"]
         rockimgs = []
         for x in rocks:
-            sprite = pygame.image.load(x).convert_alpha()
+            sprite = pygame.image.load(x).convert()
+            sprite.set_colorkey((255, 0, 0))
             self.rotations = []
             for i in range(180):
                 self.rotations.append(rot_center(sprite.convert_alpha(), sprite.get_rect(), i * 2))

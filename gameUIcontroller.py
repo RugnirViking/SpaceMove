@@ -160,6 +160,14 @@ class GameUIController:
                                                             actionbar_surface.get_height() - self.selection.get_height() +
                                                             self.selectionposlist[i][1]))
                 actionbar_surface.blit(self.icons[i],(self.selectionposlist[i][0]+26,actionbar_surface.get_height()-self.icons[i].get_height()-24))
+
+                minibar_surface = pygame.Surface((self.icons[i].get_width(), self.icons[i].get_height()), pygame.SRCALPHA)
+                minibar_surface.set_alpha(128)
+                pygame.draw.rect(minibar_surface,(255,255,255),
+                                 (0,self.icons[i].get_height()*(1-self.engine.player.cooldowns[i]/self.engine.player.cooldown_time[i]),self.icons[i].get_width(),self.icons[i].get_height()*self.engine.player.cooldowns[i]/self.engine.player.cooldown_time[i]))
+
+                actionbar_surface.blit(minibar_surface,(self.selectionposlist[i][0]+26,
+                                                        actionbar_surface.get_height()-self.icons[i].get_height()-24))
             else:
                 actionbar_surface.blit(self.disabled_icons[i],(self.selectionposlist[i][0]+26,actionbar_surface.get_height()-self.disabled_icons[i].get_height()-24))
                 actionbar_surface.blit(self.disabled_selection, (self.selectionposlist[i][0],
